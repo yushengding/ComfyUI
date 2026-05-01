@@ -24,3 +24,10 @@ web_custom_versions/
 openapi.yaml
 filtered-openapi.yaml
 uv.lock
+
+# Local learning materials (mp3 / video) — too large for GitHub
+/tutorial/
+*.mp3
+*.mp4
+*.webm
+*.mkv

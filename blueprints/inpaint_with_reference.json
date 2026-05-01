@@ -1,0 +1,132 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "dreamshaper_8.safetensors"
+    },
+    "_meta": { "title": "1. 加载模型" }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "source.png"
+    },
+    "_meta": { "title": "2. 源图片（要修改的图）" }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference.png"
+    },
+    "_meta": { "title": "3. 参考图片（提供替换内容的图）" }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["1", 1],
+      "text": "detailed skin, natural lighting, high quality, photorealistic"
+    },
+    "_meta": { "title": "4. 正面提示词（控制修改方向）" }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["1", 1],
+      "text": "low quality, blurry, bad anatomy, deformed, ugly, watermark, text"
+    },
+    "_meta": { "title": "5. 负面提示词" }
+  },
+  "10": {
+    "class_type": "IPAdapterModelLoader",
+    "inputs": {
+      "ipadapter_file": "ip-adapter-plus_sd15.safetensors"
+    },
+    "_meta": { "title": "10. 加载 IP-Adapter 模型" }
+  },
+  "11": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "clip_vision_h14.safetensors"
+    },
+    "_meta": { "title": "11. 加载 CLIP Vision" }
+  },
+  "12": {
+    "class_type": "ImageCrop",
+    "inputs": {
+      "image": ["3", 0],
+      "width": 256,
+      "height": 256,
+      "x": 128,
+      "y": 200
+    },
+    "_meta": { "title": "12. 裁剪参考图局部区域（调整x/y/w/h选择参考位置）" }
+  },
+  "13": {
+    "class_type": "PrepImageForClipVision",
+    "inputs": {
+      "image": ["12", 0],
+      "interpolation": "LANCZOS",
+      "crop_position": "center",
+      "sharpening": 0.0
+    },
+    "_meta": { "title": "13. 预处理参考图供 CLIP Vision" }
+  },
+  "14": {
+    "class_type": "IPAdapterAdvanced",
+    "inputs": {
+      "model": ["1", 0],
+      "ipadapter": ["10", 0],
+      "image": ["12", 0],
+      "weight": 0.65,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "V only",
+      "clip_vision": ["11", 0]
+    },
+    "_meta": { "title": "14. IP-Adapter（锁定参考图外观，weight 控制强度）" }
+  },
+  "20": {
+    "class_type": "VAEEncodeForInpaint",
+    "inputs": {
+      "pixels": ["2", 0],
+      "vae": ["1", 2],
+      "mask": ["2", 1],
+      "grow_mask_by": 8
+    },
+    "_meta": { "title": "20. 编码源图 + Mask（grow_mask_by 控制边缘过渡）" }
+  },
+  "30": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["14", 0],
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["20", 0],
+      "seed": 42,
+      "steps": 25,
+      "cfg": 7.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 0.85
+    },
+    "_meta": { "title": "30. 采样器（denoise 控制修改程度）" }
+  },
+  "40": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["30", 0],
+      "vae": ["1", 2]
+    },
+    "_meta": { "title": "40. 解码" }
+  },
+  "50": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "inpaint_result",
+      "images": ["40", 0]
+    },
+    "_meta": { "title": "50. 保存结果" }
+  }
+}
